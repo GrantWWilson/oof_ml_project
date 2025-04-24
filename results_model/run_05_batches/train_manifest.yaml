@@ -1,0 +1,27 @@
+timestamp: "20250409\u2011145446"
+dataset_path: data/synthetic_45m/train
+band_filter: a2000
+batch_size: 32
+epochs: 100
+learning_rate: 0.001
+shift_pixels: 2.5
+basis_oversample: 4
+basis_loss_weight: 5.0
+curriculum_epochs: 20
+total_samples: 4000
+basis_fraction: 0.0
+input_shape:
+- 32
+- 32
+- 3
+num_outputs: 8
+translation_fraction: 0.078125
+train_samples: 2799
+val_samples: 800
+test_samples: 401
+architecture: "3\xD7Conv32\u201164\u2011128 \u2192 GAP \u2192 Dense(64)/Dense(32)\
+  \ \u2192 Dense(num_outputs)"
+best_model: "results_model/run_20250409\u2011145446/models/zernike_predictor_best.keras"
+final_model: "results_model/run_20250409\u2011145446/models/zernike_predictor_final.keras"
+final_loss: 3340.583740234375
+final_val_loss: 1927.04833984375

@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Build artifacts
+build/
+dist/
+
+# Virtual environments
+venv/
+.env/

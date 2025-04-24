@@ -1,0 +1,17 @@
+timestamp: 20250409-181340
+model_path: results_model/run_50_batches/models/zernike_predictor_final.keras
+dataset_path: data/synthetic_45m/test
+band_filter: a2000
+max_batch_num: 900
+remove_focus: false
+X_test_shape:
+- 103000
+- 32
+- 32
+- 3
+y_test_shape:
+- 103000
+- 8
+mean_mae: 17.568481644938892
+mean_rmse: 21.837079691239456
+mean_r2: 0.9503218664479238

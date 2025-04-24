@@ -1,0 +1,127 @@
+timestamp: 20250409-182312
+model_path: results_model/run_50_batches/models/zernike_predictor_final.keras
+basis_dir: data/synthetic_basis_vectors
+num_files: 20
+zernike_output_names:
+- !!python/object/apply:numpy._core.multiarray.scalar
+  - !!python/object/apply:numpy.dtype
+    args:
+    - U5
+    - false
+    - true
+    state: !!python/tuple
+    - 3
+    - <
+    - null
+    - null
+    - null
+    - 20
+    - 4
+    - 8
+  - !!binary |
+    QQAAAFMAAABUAAAAXwAAAFYAAAA=
+- !!python/object/apply:numpy._core.multiarray.scalar
+  - !!python/object/apply:numpy.dtype
+    args:
+    - U5
+    - false
+    - true
+    state: !!python/tuple
+    - 3
+    - <
+    - null
+    - null
+    - null
+    - 20
+    - 4
+    - 8
+  - !!binary |
+    QQAAAFMAAABUAAAAXwAAAE8AAAA=
+- !!python/object/apply:numpy._core.multiarray.scalar
+  - !!python/object/apply:numpy.dtype
+    args:
+    - U6
+    - false
+    - true
+    state: !!python/tuple
+    - 3
+    - <
+    - null
+    - null
+    - null
+    - 24
+    - 4
+    - 8
+  - !!binary |
+    QwAAAE8AAABNAAAAQQAAAF8AAABIAAAA
+- !!python/object/apply:numpy._core.multiarray.scalar
+  - !!python/object/apply:numpy.dtype
+    args:
+    - U6
+    - false
+    - true
+    state: !!python/tuple
+    - 3
+    - <
+    - null
+    - null
+    - null
+    - 24
+    - 4
+    - 8
+  - !!binary |
+    QwAAAE8AAABNAAAAQQAAAF8AAABWAAAA
+- !!python/object/apply:numpy._core.multiarray.scalar
+  - !!python/object/apply:numpy.dtype
+    args:
+    - U5
+    - false
+    - true
+    state: !!python/tuple
+    - 3
+    - <
+    - null
+    - null
+    - null
+    - 20
+    - 4
+    - 8
+  - !!binary |
+    VAAAAFIAAABFAAAAXwAAAE8AAAA=
+- !!python/object/apply:numpy._core.multiarray.scalar
+  - !!python/object/apply:numpy.dtype
+    args:
+    - U5
+    - false
+    - true
+    state: !!python/tuple
+    - 3
+    - <
+    - null
+    - null
+    - null
+    - 20
+    - 4
+    - 8
+  - !!binary |
+    VAAAAFIAAABFAAAAXwAAAFYAAAA=
+- !!python/object/apply:numpy._core.multiarray.scalar
+  - !!python/object/apply:numpy.dtype
+    args:
+    - U3
+    - false
+    - true
+    state: !!python/tuple
+    - 3
+    - <
+    - null
+    - null
+    - null
+    - 12
+    - 4
+    - 8
+  - !!binary |
+    UwAAAFAAAABIAAAA
+- M2z_offset
+R_path: results_model/run_50_batches/models/R.npy
+R_inv_path: results_model/run_50_batches/models/R_inv.npy
