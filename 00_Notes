@@ -1,0 +1,50 @@
+4/24/2025
+ - renamed 'results_models' directory to just 'models'
+ - deleted the run_05_batches model directory
+ - renamed the run_50_batches model directory to 'model_01'
+ - reworked zernike_predictor.py so that the relative amplitudes of
+   the three maps are preserved while z=0 maps gets amplitude=1.
+
+4/8/2025
+ - stopped and deleted a2000+a1100 model
+ - reworked data training with a few key changes:
+   - got rid of the two tilts since they are primarily pointing offsets
+   - added synthetic data generation for the basis vectors
+     - delta functions at each basis vector with about 7 different amplitudes
+     - pairs of basis vectors - focussing on astigmatism and coma
+ - deleted all 50m data and models
+ - deleted older 45m data and models
+ - started a new synthetic data run with 1-100, 101-200, and 201-300 + basis vectors
+
+
+4/7/2025
+ - evaluation of 45m data is complete
+ - moved model directory to results_model_45/run_20250405-a2000
+ - started training same data but for model a2000+a1100
+
+4/6/2025
+ - built 'basis_vectors' test where we test model with +/- 100 micron
+   amplitudes on each zernike parameter
+ - results are not very good - model wants to put power in all modes and
+   so undercounts actual mode
+ - neeed to develop mitigation strategy
+
+4/5/2025
+ - started model training on 45m data even though it's not quite done yet
+
+4/4/2025
+ - all steps for 45m data
+   - modified LMTOOF to use 45m dish for TolTEC bands
+   - synthetic data generation is ongoing in data/synthetic_45m
+
+4/3/2025
+ - all steps for the 50m data
+   - synthetic data generation in data/synthetic_50m
+   - model generated from 2mm data only
+   - model evaluation pdf created
+   - model comparison with all existing TolTEC OOF data is complete
+   - initial comparison with Pete's outputs show much smaller zernike coefficient estimations
+
+
+
+

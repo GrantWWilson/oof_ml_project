@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-ZernikePredictor — now with
-  • basis‑vector oversampling
-  • loss‑weighting
-  • simple two‑phase curriculum
+ZernikePredictor — now with
+  • basis-vector oversampling
+  • loss-weighting
+  • simple two-phase curriculum
 """
 
 import os, sys, psutil, yaml, math
@@ -15,9 +15,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # ---------------------------------------------------------------------------
-#  ‑‑ ENV & THREADING --------------------------------------------------------
+#  -- ENV & THREADING -------------------------------------------------------
 # ---------------------------------------------------------------------------
-os.environ["CUDA_VISIBLE_DEVICES"] = ""         # CPU‑only
+os.environ["CUDA_VISIBLE_DEVICES"] = ""         # CPU-only
 for var, n in [
     ("OMP_NUM_THREADS",32), ("TF_NUM_INTEROP_THREADS",32),
     ("TF_NUM_INTRAOP_THREADS",32), ("MKL_NUM_THREADS",32),
@@ -45,7 +45,7 @@ class ZernikePredictor:
         shift_pixels       = 2.5,
         #
         basis_oversample   = 4,      # repeat each basis sample this many times
-        basis_loss_weight  = 5.0,    # sample‑weight for every basis sample
+        basis_loss_weight  = 5.0,    # sample-weight for every basis sample
         curriculum_epochs  = 20      # first N epochs ⇒ no basis data
     ):
         self.dataset_path      = Path(dataset_path)
@@ -59,12 +59,12 @@ class ZernikePredictor:
         self.basis_loss_weight = float(basis_loss_weight)
         self.curriculum_epochs = int(curriculum_epochs)
 
-        ts = datetime.now().strftime("%Y%m%d‑%H%M%S")
+        ts = datetime.now().strftime("%Y%m%d-%H%M%S")
         self.run_dir    = self.working_directory / f"run_{ts}"
         self.models_dir = self.run_dir / "models"
         self.plots_dir  = self.run_dir / "plots"
         self.logs_dir   = self.run_dir / "logs"
-        for d in (self.models_dir, self.plots_dir, self.logs_dir): 
+        for d in (self.models_dir, self.plots_dir, self.logs_dir):
             d.mkdir(parents=True, exist_ok=True)
 
         # Placeholders for data, model, parameter names, etc.
@@ -90,19 +90,30 @@ class ZernikePredictor:
     @staticmethod
     def log_mem(tag=""):
         mem = psutil.Process(os.getpid()).memory_info().rss / (1024**3)
-        print(f"[MEM] {tag:>12}: {mem:6.2f} GB")
+        print(f"[MEM] {tag:>12}: {mem:6.2f} GB")
 
     def precondition_maps(self, imgs):
         return imgs
 
-    def _norm_by_peak(self, imgs):
+    def _norm_relative_to_zero(self, imgs, subrefs):
+        """
+        Normalize each sample by the peak of the channel whose M2-offset == 0,
+        preserving relative amplitudes of the other channels.
+        """
         imgs = self.precondition_maps(imgs)
-        for i in range(imgs.shape[0]):
-            for c in range(imgs.shape[-1]):
-                mx = imgs[i, :, :, c].max()
-                if mx > 0:
-                    imgs[i, :, :, c] /= mx
-        return imgs
+        # imgs: (N, H, W, C), subrefs: (N,1) or (N, C)
+        # ensure shape (N, C)
+        offsets = subrefs if subrefs.ndim == 2 else np.tile(subrefs, (1, imgs.shape[-1]))
+        # find the zero-offset channel index
+        if (offsets[0] == 0).any():
+            zero_idx = int(np.where(offsets[0] == 0)[0][0])
+        else:
+            zero_idx = imgs.shape[-1] // 2
+        # compute per-sample peaks for each channel
+        peaks = imgs.max(axis=(1,2))           # shape (N, C)
+        ref_peaks = peaks[:, zero_idx]         # shape (N,)
+        ref_peaks[ref_peaks <= 0] = 1.0        # avoid division by zero
+        return imgs / ref_peaks[:, None, None, None]
 
     # ---------------------- DATA LOADING ----------------------------------
     def _collect_npz_files(self, subdir):
@@ -118,7 +129,7 @@ class ZernikePredictor:
             d = np.load(f)
             if self.zernike_names is None:
                 self.zernike_names = list(d["zernike_names"]) + ["M2z_offset"]
-            imgs = self._norm_by_peak(d["images"])
+            imgs = self._norm_relative_to_zero(d["images"], d["subrefs"])
             zern = d["zernikes"]
             m2   = d["subrefs"][:, 0:1]
             lbl  = np.concatenate([zern, m2], axis=1)
@@ -134,18 +145,20 @@ class ZernikePredictor:
         # Load regular (non-basis) files:
         main_files  = [
             f for f in self._collect_npz_files(self.dataset_path)
-            if f.stem.split("_")[-1].isdigit() and int(f.stem.split("_")[-1]) < max_batch_num
+            if f.stem.split("_")[-1].isdigit()
+               and int(f.stem.split("_")[-1]) < max_batch_num
                and "basis" not in f.parts
         ]
         X_main, Y_main, W_main = self._load_npz_group(main_files, 1.0)
 
-        # Load basis files from the 'basis' subfolder:
+        # Load basis files:
         basis_root = self.dataset_path / "basis"
         X_basis = Y_basis = W_basis = None
         if basis_root.is_dir():
             basis_files = [
                 f for f in self._collect_npz_files(basis_root)
-                if f.stem.split("_")[-1].isdigit() and int(f.stem.split("_")[-1]) < max_batch_num
+                if f.stem.split("_")[-1].isdigit()
+                   and int(f.stem.split("_")[-1]) < max_batch_num
             ]
             X_basis, Y_basis, W_basis = self._load_npz_group(basis_files, self.basis_loss_weight)
             if self.basis_oversample > 1 and X_basis is not None:
@@ -168,7 +181,6 @@ class ZernikePredictor:
         self.num_outputs = Y.shape[1]
         self.manifest["input_shape"] = list(self.input_shape)
         self.manifest["num_outputs"] = self.num_outputs
-        self.manifest["total_samples"] = int(X.shape[0])
 
         H, W_img, _ = self.input_shape
         frac = self.shift_pixels / float(min(H, W_img))
@@ -180,8 +192,10 @@ class ZernikePredictor:
     # --------------------- DATASET BUILD ----------------------------------
     def _augment_map(self, img, lbl, wt):
         chans = tf.unstack(img, axis=-1)
-        chans = [tf.squeeze(self.data_augment(tf.expand_dims(c, -1), training=True), -1)
-                 for c in chans]
+        chans = [
+            tf.squeeze(self.data_augment(tf.expand_dims(c, -1), training=True), -1)
+            for c in chans
+        ]
         return tf.stack(chans, axis=-1), lbl, wt
 
     def prepare_datasets(self, val_fraction=0.2, test_fraction=0.1):
@@ -220,14 +234,15 @@ class ZernikePredictor:
         x = layers.Conv2D(128, 3, padding="same")(x); x = layers.BatchNormalization()(x); x = layers.ReLU()(x)
         x = layers.GlobalAveragePooling2D()(x)
         for units in (64, 32):
-            x = layers.Dense(units)(x); x = layers.BatchNormalization()(x); x = layers.ReLU()(x); x = layers.Dropout(0.2)(x)
+            x = layers.Dense(units)(x); x = layers.BatchNormalization()(x)
+            x = layers.ReLU()(x); x = layers.Dropout(0.2)(x)
         out = layers.Dense(self.num_outputs, activation="linear")(x)
         self.model = Model(inp, out)
         self.model.compile(
             optimizer=tf.keras.optimizers.Adam(self.learning_rate),
             loss="mse", metrics=["mae"]
         )
-        self.manifest["architecture"] = "3×Conv32‑64‑128 → GAP → Dense(64)/Dense(32) → Dense(num_outputs)"
+        self.manifest["architecture"] = "3×Conv32-64-128 → GAP → Dense(64)/Dense(32) → Dense(num_outputs)"
 
     # --------------------- TRAIN ------------------------------------------
     def train(self):
@@ -240,16 +255,16 @@ class ZernikePredictor:
         # Phase 1: Main-only curriculum (no basis samples)
         n1 = min(self.curriculum_epochs, self.epochs)
         if n1 > 0:
-            print(f"\n[Curriculum] Phase‑1 : {n1} epochs (no basis samples)")
+            print(f"\n[Curriculum] Phase-1 : {n1} epochs (no basis samples)")
             h = self.model.fit(self.train_ds_main, validation_data=self.val_ds,
                                epochs=n1, callbacks=[lr_cb, ckpt_cb], verbose=1)
             history_all["loss"] += h.history["loss"]
             history_all["val_loss"] += h.history["val_loss"]
 
-        # Phase 2: Full dataset (including basis samples, weighted) 
+        # Phase 2: Full dataset (including basis samples, weighted)
         n2 = self.epochs - n1
         if n2 > 0:
-            print(f"\n[Curriculum] Phase‑2 : {n2} epochs (full dataset with basis weights)")
+            print(f"\n[Curriculum] Phase-2 : {n2} epochs (full dataset with basis weights)")
             h = self.model.fit(self.train_ds_full, validation_data=self.val_ds,
                                initial_epoch=n1, epochs=self.epochs,
                                callbacks=[lr_cb, ckpt_cb], verbose=1)
@@ -284,7 +299,11 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--dataset-path", default="data/synthetic_45m/train")
     p.add_argument("--working-directory", default="results_model")
-    p.add_argument("--band-filter", default="a2000")
+    p.add_argument(
+        "--band-filter",
+        default="a2000",
+        help="Which array(s) to train on. For multiple, separate with '+', e.g. 'a1100+a2000'"
+    )
     p.add_argument("--batch-size", type=int, default=32)
     p.add_argument("--epochs", type=int, default=100)
     p.add_argument("--learning-rate", type=float, default=1e-3)
@@ -298,16 +317,16 @@ if __name__ == "__main__":
     args = p.parse_args()
 
     predictor = ZernikePredictor(
-        dataset_path=args.dataset_path,
-        working_directory=args.working_directory,
-        band_filter=args.band_filter,
-        batch_size=args.batch_size,
-        epochs=args.epochs,
-        learning_rate=args.learning_rate,
-        shift_pixels=args.shift_pixels,
-        basis_oversample=args.basis_oversample,
-        basis_loss_weight=args.basis_loss_weight,
-        curriculum_epochs=args.curriculum_epochs,
+        dataset_path      = args.dataset_path,
+        working_directory = args.working_directory,
+        band_filter       = args.band_filter,
+        batch_size        = args.batch_size,
+        epochs            = args.epochs,
+        learning_rate     = args.learning_rate,
+        shift_pixels      = args.shift_pixels,
+        basis_oversample  = args.basis_oversample,
+        basis_loss_weight = args.basis_loss_weight,
+        curriculum_epochs = args.curriculum_epochs,
     )
     predictor.load_data(max_batch_num=args.max_batch_num)
     predictor.prepare_datasets(val_fraction=args.val_fraction, test_fraction=args.test_fraction)
